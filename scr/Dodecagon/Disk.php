@@ -1,6 +1,6 @@
 <?php
 
-namespace Dedecagon;
+namespace Dodecagon;
 
 class Disk {
 
@@ -23,7 +23,7 @@ class Disk {
     /**
      * Margin between parts
      */
-    const MARGIN = 1/20;
+    const MARGIN = 0.05;
 
     const OUTER = 'outer';
     const INNER = 'inner';
