@@ -1,0 +1,20 @@
+{
+    "name": "allanth4/dodecagon",
+    "description": "Show temperature (˚C) in a dodecagon (12-gon)",
+    "keywords": ["temperature", "dedecagon", "sg"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Allan Th. Andersen",
+            "email": "allanth4@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^5.6",
+        
+    },
+    "autoload": {
+        "psr-4": {"Dodecagon\\": "src/Dedecagon"}
+    }
+}
