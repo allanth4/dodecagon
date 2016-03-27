@@ -5,12 +5,6 @@ namespace Dodecagon;
 class Disk {
 
     /**
-     * Width and heigh of canvas in px
-     * @todo Move to constructor
-     */
-    const CANVAS = 400;
-    
-    /**
      * The outer diameter in relation to the canvas size
      */
     const OUTER_DIAMETER = 0.95;
@@ -33,13 +27,25 @@ class Disk {
      */
     private $temperature; // ˚C
 
-    public function __construct($temperature) {
+    /**
+     * Width and heigh of canvas in px
+     */
+    private $canvas;
+
+    public function __construct($canvas, $temperature) {
 
         if ($temperature < -11 || $temperature > 36) {
-            throw new Exception("Temperature out of bounds [-11;36]", 1);
-            
+            throw new \Exception("Temperature out of bounds [-11;36]", 1);
         }
+
+        $canvas = intval($canvas);
+
+        if ($canvas < 10) {
+            throw new \Exception("Canvas size is too small", 1);
+        }
+
         $this->temperature = $temperature;
+        $this->canvas = $canvas;
     }
 
     /**
@@ -49,7 +55,7 @@ class Disk {
      */
     private function getRadius ($innerOrOuter)
     {
-        return self::CANVAS * ($innerOrOuter == self::OUTER ? self::OUTER_DIAMETER : self::INNER_DIAMETER) / 2;
+        return $this->canvas * ($innerOrOuter == self::OUTER ? self::OUTER_DIAMETER : self::INNER_DIAMETER) / 2;
     }
 
     /**
@@ -59,7 +65,7 @@ class Disk {
      */
     private function getCenter ()
     {
-        return self::CANVAS / 2;
+        return $this->canvas / 2;
     }
 
     private function getPart($position, $color) {
@@ -111,7 +117,7 @@ class Disk {
         $cos = cos(($position + ($beginning ? self::MARGIN : -self::MARGIN)) * pi() / 6);
 
         $x = $sin * $this->getRadius($innerOrOuter) + $this->getCenter();
-        $y = self::CANVAS - $cos * $this->getRadius($innerOrOuter) - $this->getCenter();
+        $y = $this->canvas - $cos * $this->getRadius($innerOrOuter) - $this->getCenter();
 
         return array('x' => $x, 'y' => $y);
     }
@@ -150,7 +156,7 @@ class Disk {
         $range = min(max($range, 0), 3);
 
         if (!isset($colors[$range])) {
-            throw new Exception("No color for range $range found", 1);
+            throw new \Exception("No color for range $range found", 1);
             
         }
         return $colors[$range];
@@ -160,6 +166,21 @@ class Disk {
     private function getDefaultColor()
     {
         return '#eeeeee';
+    }
+
+    /**
+     * @return string Get the dodecagon SVG 
+     */
+    public function getSvg()
+    {
+        $svg = '<svg width="' . $this->canvas . '" height="' . $this->canvas . '">' . PHP_EOL;
+
+        foreach($this->getParts() as $part) {
+            $svg .= '<polygon points="' . $part['pointsString'] . '" style="fill:' . $part['color'] . ';" />' . PHP_EOL;
+        }
+        $svg .= '</svg>' . PHP_EOL;
+  
+        return $svg;
     }
 }
 ?>
