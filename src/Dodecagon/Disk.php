@@ -174,6 +174,7 @@ class Disk {
     public function getSvg()
     {
         $svg = '<svg width="' . $this->canvas . '" height="' . $this->canvas . '">' . PHP_EOL;
+        $svg .= '<text text-anchor="middle" x="' . $this->getXTextCoord() . '" y="' . $this->getYTextCoord() . '" style="font-size: ' . $this->getFontSize() . 'px;font-family:sans-serif;" fill="' . $this->getRangeColor() . '">' . $this->temperature . ' °C</text>';
 
         foreach($this->getParts() as $part) {
             $svg .= '<polygon points="' . $part['pointsString'] . '" style="fill:' . $part['color'] . ';" />' . PHP_EOL;
@@ -181,6 +182,23 @@ class Disk {
         $svg .= '</svg>' . PHP_EOL;
   
         return $svg;
+    }
+
+    private function getFontSize()
+    {
+        return intval(0.289556962 * $this->canvas - 33.5 + 0.5);
+
+    }
+
+    private function getYTextCoord()
+    {
+        return intval(0.6107594937 * $this->canvas - 16 + 0.5);
+
+    }
+
+    private function getXTextCoord()
+    {
+        return $this->canvas / 2;
     }
 }
 ?>
