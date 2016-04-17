@@ -5,27 +5,36 @@ namespace Dodecagon;
 class Disk {
 
     /**
-     * The outer diameter in relation to the canvas size
+     * Diameters in relation to the canvas size
      */
-    const OUTER_DIAMETER = 0.95;
-    
-    /**
-     * The inner diameter in relation to the canvas size
-     */
-    const INNER_DIAMETER = 0.71;
+    const DIAMETER_PRIMARY_OUTER = 0.95;
+    const DIAMETER_PRMIARY_INNER = 0.71;
+    const DIAMETER_SECONDARY_OUTER = 0.68;
+    const DIAMETER_SECONDARY_INNER = 0.63;
 
     /**
      * Margin between parts
      */
     const MARGIN = 0.05;
 
+    /**
+     * Rings each representing a temperature
+     */
+    const RING_PRIMARY = 'ring_primary';
+    const RING_SECONDARY = 'ring_secondary';
+
+    /**
+     * Edge of ring
+     */
     const OUTER = 'outer';
     const INNER = 'inner';
 
+
     /**
-     * The inner diameter in relation to the canvas size
+     * Temperatures
      */
     private $temperature; // ˚C
+    private $secondaryTemperature; // ˚C
 
     /**
      * Width and heigh of canvas in px
@@ -45,6 +54,7 @@ class Disk {
         }
 
         $this->temperature = $temperature;
+        $this->secondaryTemperature = NULL;
         $this->canvas = $canvas;
     }
 
@@ -53,9 +63,13 @@ class Disk {
      *
      * @return float Inner or outer radius of disk in px
      */
-    private function getRadius ($innerOrOuter)
+    private function getRadius ($innerOrOuter, $ring)
     {
-        return $this->canvas * ($innerOrOuter == self::OUTER ? self::OUTER_DIAMETER : self::INNER_DIAMETER) / 2;
+        if ($ring == SELF::RING_PRIMARY) {
+            return $this->canvas * ($innerOrOuter == self::OUTER ? self::DIAMETER_PRIMARY_OUTER : self::DIAMETER_PRMIARY_INNER) / 2;
+        }
+
+        return $this->canvas * ($innerOrOuter == self::OUTER ? self::DIAMETER_SECONDARY_OUTER : self::DIAMETER_SECONDARY_INNER) / 2;
     }
 
     /**
@@ -68,7 +82,7 @@ class Disk {
         return $this->canvas / 2;
     }
 
-    private function getPart($position, $color) {
+    private function getPart($position, $color, $ring) {
         if ($position < 0) {
             throw new \Exception("Position smaller than zero", 1);
         }
@@ -76,10 +90,10 @@ class Disk {
             throw new \Exception("Position greater than eleven", 1);
         }
         $points =[
-            $this->getPoint($position, self::OUTER, TRUE),
-            $this->getPoint($position + 1, self::OUTER, FALSE),
-            $this->getPoint($position + 1, self::INNER, FALSE),
-            $this->getPoint($position, self::INNER, TRUE),
+            $this->getPoint($position, self::OUTER, TRUE, $ring),
+            $this->getPoint($position + 1, self::OUTER, FALSE, $ring),
+            $this->getPoint($position + 1, self::INNER, FALSE, $ring),
+            $this->getPoint($position, self::INNER, TRUE, $ring),
         ];
 
         $pointsString = '';
@@ -104,7 +118,7 @@ class Disk {
      *
      * @return array with x and y coordinates
      */
-    private function getPoint($position, $innerOrOuter, $beginning) {
+    private function getPoint($position, $innerOrOuter, $beginning, $ring) {
 
         if (!in_array($innerOrOuter, array(self::INNER, self::OUTER))) {
             throw new \Exception("Wrong circle: $innerOrOuter", 1);
@@ -116,34 +130,36 @@ class Disk {
         $sin = sin(($position + ($beginning ? self::MARGIN : -self::MARGIN)) * pi() / 6);
         $cos = cos(($position + ($beginning ? self::MARGIN : -self::MARGIN)) * pi() / 6);
 
-        $x = $sin * $this->getRadius($innerOrOuter) + $this->getCenter();
-        $y = $this->canvas - $cos * $this->getRadius($innerOrOuter) - $this->getCenter();
+        $x = $sin * $this->getRadius($innerOrOuter, $ring) + $this->getCenter();
+        $y = $this->canvas - $cos * $this->getRadius($innerOrOuter, $ring) - $this->getCenter();
 
         return array('x' => $x, 'y' => $y);
     }
 
-    public function getParts() {
+    public function getParts($ring) {
+        
+        $temperature = ($ring == self::RING_PRIMARY) ? $this->temperature : $this->secondaryTemperature;
         
         $parts = array();
         for($i = 0; $i < 12; $i++) {
-            
+
             $color = $this->getDefaultColor();
             
-            if ($this->temperature > 0) {
-                if (($this->temperature - 1) % 12 >= $i) {
-                    $color = $this->getRangeColor();
+            if ($temperature > 0) {
+                if (($temperature - 1) % 12 >= $i) {
+                    $color = $this->getRangeColor($ring);
                 }
             } else {
-                if ($i >= $this->temperature + 12) {
-                    $color = $this->getRangeColor();    
+                if ($i >= $temperature + 12) {
+                    $color = $this->getRangeColor($ring);    
                 }
             }
-            $parts[] = $this->getPart($i, $color);
+            $parts[] = $this->getPart($i, $color, $ring);
         }
         return $parts;
     }
 
-    private function getRangeColor ()
+    private function getRangeColor ($ring)
     {
         //https://coolors.co/app/fa7921-fe9920-c00000-566e3d-0c4767
         $colors = [
@@ -152,7 +168,8 @@ class Disk {
             '#fa7921', // orange
             '#c00000', // red
         ];
-        $range = intval(($this->temperature - 1) / 12 + 1);
+        $temperature = ($ring == self::RING_PRIMARY) ? $this->temperature : $this->secondaryTemperature;
+        $range = intval(($temperature - 1) / 12 + 1);
         $range = min(max($range, 0), 3);
 
         if (!isset($colors[$range])) {
@@ -173,11 +190,17 @@ class Disk {
      */
     public function getSvg()
     {
+     
         $svg = '<svg width="' . $this->canvas . '" height="' . $this->canvas . '">' . PHP_EOL;
-        $svg .= '<text text-anchor="middle" x="' . $this->getXTextCoord() . '" y="' . $this->getYTextCoord() . '" style="font-size: ' . $this->getFontSize() . 'px;font-family:sans-serif;" fill="' . $this->getRangeColor() . '">' . $this->temperature . ' °C</text>';
+        $svg .= '<text text-anchor="middle" x="' . $this->getXTextCoord() . '" y="' . $this->getYTextCoord() . '" style="font-size: ' . $this->getFontSize() . 'px;font-family:sans-serif;" fill="' . $this->getRangeColor(self::RING_PRIMARY) . '">' . $this->temperature . ' °C</text>';
 
-        foreach($this->getParts() as $part) {
+        foreach($this->getParts(self::RING_PRIMARY) as $part) {
             $svg .= '<polygon points="' . $part['pointsString'] . '" style="fill:' . $part['color'] . ';" />' . PHP_EOL;
+        }
+        if (!is_null($this->secondaryTemperature)) {
+            foreach($this->getParts(self::RING_SECONDARY) as $part) {
+                $svg .= '<polygon points="' . $part['pointsString'] . '" style="fill:' . $part['color'] . ';" />' . PHP_EOL;
+            }
         }
         $svg .= '</svg>' . PHP_EOL;
   
@@ -199,6 +222,15 @@ class Disk {
     private function getXTextCoord()
     {
         return $this->canvas / 2;
+    }
+
+    public function setSecondaryTemperature ($temperature)
+    {
+        if ($temperature < -11 || $temperature > 36) {
+            throw new \Exception("Secondary temperature out of bounds [-11;36]", 1);
+        }
+
+        $this->secondaryTemperature = $temperature;
     }
 }
 ?>
